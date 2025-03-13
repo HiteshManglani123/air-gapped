@@ -1,0 +1,3 @@
+[submodule "cs_research"]
+	path = cs_research
+	url = https://github.com/Krasnomakov/cs_research.git
