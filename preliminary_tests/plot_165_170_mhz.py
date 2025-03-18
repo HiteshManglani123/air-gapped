@@ -849,7 +849,7 @@ def plot_waterfall(df):
     plt.ylabel('Frequency (dB)')
     plt.legend()
     plt.grid(True)
-    plt.tight_layout()
+#    plt.tight_layout()
     plt.show()
 
 # Parse the data and plot
