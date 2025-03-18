@@ -65,13 +65,13 @@ int main(void)
 	run_time = transmit();
 	
 	sleep(run_time);      // 0
-	run_time = transmit();   // 1
+	transmit();   // 1
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
-	run_time = transmit();   // 1
+	transmit();   // 1
 
 	return 0;
 }
