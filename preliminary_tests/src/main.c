@@ -14,6 +14,8 @@ int main(void) {
 
   struct Transmitter *transmitter = transmitter_create(interval);
 
+  transmitter_send_calibration(transmitter, 4);
+
   transmitter_send_letter(transmitter, 'H');
   transmitter_send_letter(transmitter, 'e');
   transmitter_send_letter(transmitter, 'l');

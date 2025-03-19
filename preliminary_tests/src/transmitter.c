@@ -41,6 +41,15 @@ void transmitter_send_letter(struct Transmitter *transmitter, char letter) {
   printf("\n");
 }
 
+void transmitter_send_calibration(struct Transmitter *transmitter, int length) {
+  while (length--) {
+    printf("%d", length % 2);
+    fflush(stdout);
+    transmitter_send_bit(transmitter, (length % 2));
+  }
+  printf("\n");
+}
+
 void transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
   if (current_bit == 0) {
     _send_low(transmitter);

@@ -10,6 +10,9 @@
 
 #include "macros.h"
 
+#define HIGH 1
+#define LOW 0
+
 struct Transmitter {
   size_t number_of_virtual_cores;
   int interval;
@@ -20,6 +23,8 @@ struct Transmitter {
 struct Transmitter *transmitter_create(int interval);
 
 void transmitter_destroy(struct Transmitter *transmitter);
+
+void transmitter_send_calibration(struct Transmitter *transmitter, int length);
 
 void transmitter_send_letter(struct Transmitter *transmitter, char letter);
 
