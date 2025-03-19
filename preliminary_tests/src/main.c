@@ -22,23 +22,6 @@ int main(void) {
   transmitter_send_letter(transmitter, 'l');
   transmitter_send_letter(transmitter, 'o');
 
-  // calibration
-  /*
-  transmitter_send_high(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_high(transmitter);
-
-  // binary A
-  transmitter_send_low(transmitter);
-  transmitter_send_high(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_low(transmitter);
-  transmitter_send_high(transmitter);
-  */
-
   transmitter_destroy(transmitter);
 
   return 0;
