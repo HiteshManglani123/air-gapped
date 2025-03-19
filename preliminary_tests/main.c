@@ -7,6 +7,9 @@
 #define NUM_OF_CORES 8
 #define MAX_PRIME 50000
 
+#define UP true
+#define DOWN false
+
 void do_primes()
 {
     unsigned long i, num, primes = 0;
@@ -21,7 +24,7 @@ void do_primes()
     printf("Calculated %d primes.\n", primes);
 }
 
-int transmit(void)
+int send(void)
 {
     time_t start, end;
     time_t run_time;
@@ -60,18 +63,18 @@ int main(void)
 	// A = 01000001
 
 	//calibration bits
-	int run_time = transmit();
+	int run_time = send();
 	sleep(run_time);
-	run_time = transmit();
+	run_time = send();
 	
 	sleep(run_time);      // 0
-	transmit();           // 1
+	send();           // 1
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
 	sleep(run_time);      // 0
-	transmit();           // 1
+	send();           // 1
 
 	return 0;
 }
