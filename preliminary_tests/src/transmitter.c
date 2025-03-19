@@ -6,6 +6,8 @@ static void _calculate_primes(int interval_in_ms);
 static int
 _get_big_endian_bit_from_letter_by_index(char letter,
                                          int index_from_most_significant_bit);
+static int _send_high(struct Transmitter *transmitter);
+static void _send_low(struct Transmitter *transmitter);
 
 struct Transmitter *transmitter_create(int interval) {
 
@@ -41,15 +43,15 @@ void transmitter_send_letter(struct Transmitter *transmitter, char letter) {
 
 void transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
   if (current_bit == 0) {
-    transmitter_send_low(transmitter);
+    _send_low(transmitter);
   } else if (current_bit == 1) {
-    transmitter_send_high(transmitter);
+    _send_high(transmitter);
   } else {
     abort();
   }
 }
 
-int transmitter_send_high(struct Transmitter *transmitter) {
+static int _send_high(struct Transmitter *transmitter) {
   unsigned long i;
 
   for (i = 0; i < transmitter->number_of_pids; ++i) {
@@ -70,7 +72,7 @@ int transmitter_send_high(struct Transmitter *transmitter) {
   return 0;
 }
 
-void transmitter_send_low(struct Transmitter *transmitter) {
+static void _send_low(struct Transmitter *transmitter) {
   usleep(transmitter->interval * 2);
 }
 

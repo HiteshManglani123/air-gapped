@@ -25,8 +25,4 @@ void transmitter_send_letter(struct Transmitter *transmitter, char letter);
 
 void transmitter_send_bit(struct Transmitter *transmitter, int current_bit);
 
-int transmitter_send_high(struct Transmitter *transmitter);
-
-void transmitter_send_low(struct Transmitter *transmitter);
-
 #endif // TRANSMITTER_H
