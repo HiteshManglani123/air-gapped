@@ -3,13 +3,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../include/macros.h"
 #include "../include/transmitter.h"
 
 int main(void) {
   // A = 01000001
 
-  pid_t pids[NUM_OF_CORES];
   int interval = 1 * CLOCKS_PER_SEC;
 
   struct Transmitter *transmitter = transmitter_create(interval);
