@@ -41,10 +41,10 @@ TEST_F(TransmitterFixture, high_bit_interval_consistent) {
       nanoseconds += 1000000000; // 1 billion nanoseconds in a second
   }
 
-  printf("interval  : %ld.%ld sec\n", transmitter->interval.tv_sec, transmitter->interval.tv_nsec);
+  printf("interval  : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
   printf("Time taken: %ld.%ld sec\n", seconds, nanoseconds);
-  printf("Upper limit: %ld.%ld sec\n", seconds, (long)(transmitter->interval.tv_nsec * error_margin));
-  EXPECT_TRUE( (transmitter->interval.tv_sec <= seconds) && (nanoseconds  < (long)(transmitter->interval.tv_nsec*error_margin)) );
+  printf("Upper limit: %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * error_margin));
+  EXPECT_TRUE( (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*error_margin)) );
 }
 
 int main(int argc, char **argv) {

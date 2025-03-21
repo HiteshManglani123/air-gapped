@@ -14,16 +14,14 @@
 #define HIGH 1
 #define LOW 0
 
-struct Transmitter {
-  size_t number_of_virtual_cores;
-  struct timespec interval;
-  size_t number_of_pids;
-  pid_t *pids;
-};
+// abstract Transmitter struct
+struct Transmitter;
 
 struct Transmitter *transmitter_create(double interval);
 
 void transmitter_destroy(struct Transmitter *transmitter);
+
+struct timespec transmitter_get_interval(struct Transmitter *transmitter);
 
 void transmitter_send_calibration(struct Transmitter *transmitter, int length);
 

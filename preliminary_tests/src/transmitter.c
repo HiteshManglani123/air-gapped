@@ -11,6 +11,13 @@ static void _seconds_to_timespec(double seconds, struct timespec *ts);
 static int _timespec_less_than(const struct timespec *ts1, const struct timespec *ts2);
 static struct timespec _diff_timespec(struct timespec start, struct timespec end);
 
+struct Transmitter {
+  size_t number_of_virtual_cores;
+  struct timespec interval;
+  size_t number_of_pids;
+  pid_t *pids;
+};
+
 struct Transmitter *transmitter_create(double interval) {
 
   struct Transmitter *transmitter = malloc(sizeof(struct Transmitter));
@@ -29,6 +36,11 @@ struct Transmitter *transmitter_create(double interval) {
 void transmitter_destroy(struct Transmitter *transmitter) {
   free(transmitter->pids);
   free(transmitter);
+}
+
+struct timespec transmitter_get_interval(struct Transmitter *transmitter)
+{
+  return transmitter->interval;
 }
 
 void transmitter_send_letter(struct Transmitter *transmitter, char letter) {
