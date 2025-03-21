@@ -1,26 +1,27 @@
 #include <limits.h>
+#include <math.h>
 #include <transmitter.h>
 
 static int _get_number_of_virtual_cores(int number_of_physical_cores);
-static void _calculate_primes(int interval_in_ms);
-static int
-_get_big_endian_bit_from_letter_by_index(char letter,
-                                         int index_from_most_significant_bit);
+static void _calculate_primes(struct timespec interval);
+static int _get_big_endian_bit_from_letter_by_index(char letter, int index_from_most_significant_bit);
 static int _send_high(struct Transmitter *transmitter);
 static void _send_low(struct Transmitter *transmitter);
+static void _seconds_to_timespec(double seconds, struct timespec *ts);
+static int _timespec_less_than(const struct timespec *ts1, const struct timespec *ts2);
+static struct timespec _diff_timespec(struct timespec start, struct timespec end);
 
-struct Transmitter *transmitter_create(int interval) {
+struct Transmitter *transmitter_create(double interval) {
 
   struct Transmitter *transmitter = malloc(sizeof(struct Transmitter));
 
-  transmitter->number_of_virtual_cores =
-      _get_number_of_virtual_cores(sysconf(_SC_NPROCESSORS_ONLN));
+  transmitter->number_of_virtual_cores = _get_number_of_virtual_cores(sysconf(_SC_NPROCESSORS_ONLN));
 
   transmitter->number_of_pids = transmitter->number_of_virtual_cores;
 
   transmitter->pids = malloc(sizeof(pid_t) * transmitter->number_of_pids);
 
-  transmitter->interval = interval;
+  _seconds_to_timespec(interval, &transmitter->interval);
 
   return transmitter;
 }
@@ -50,14 +51,21 @@ void transmitter_send_calibration(struct Transmitter *transmitter, int length) {
   printf("\n");
 }
 
-void transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
+clock_t transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
+  clock_t runtime;
   if (current_bit == 0) {
+    clock_t start = clock();
     _send_low(transmitter);
+    runtime = (double)(clock() - start);
   } else if (current_bit == 1) {
+    clock_t start = clock();
     _send_high(transmitter);
+    runtime = (double)(clock() - start);
   } else {
     abort();
   }
+
+  return runtime;
 }
 
 static int _send_high(struct Transmitter *transmitter) {
@@ -82,23 +90,29 @@ static int _send_high(struct Transmitter *transmitter) {
 }
 
 static void _send_low(struct Transmitter *transmitter) {
-  usleep(transmitter->interval * 2);
+  nanosleep(&transmitter->interval, NULL);
 }
 
-static void _calculate_primes(int interval) {
+static void _calculate_primes(struct timespec interval) {
   unsigned long i, num, primes = 0;
   clock_t start;
   clock_t end;
 
-  start = clock();
+  struct timespec TimeSpecStart;
+  struct timespec TimeSpecEnd;
+  struct timespec TimeSpecTotalTimeTaken;
+
+  clock_gettime(0, &TimeSpecStart);
   for (num = 1; num <= MAX_PRIME; ++num) {
     for (i = 2; (i <= num) && (num % i != 0); ++i)
       ;
     if (i == num) {
       ++primes;
     }
-    end = clock();
-    if ((end - start) >= interval) {
+    clock_gettime(0, &TimeSpecEnd);
+    TimeSpecTotalTimeTaken = _diff_timespec(TimeSpecStart, TimeSpecEnd);
+
+    if ( _timespec_less_than(&interval, &TimeSpecTotalTimeTaken)) {
       return;
     }
   }
@@ -108,9 +122,33 @@ static int _get_number_of_virtual_cores(int number_of_physical_cores) {
   return number_of_physical_cores * 2;
 }
 
-static int
-_get_big_endian_bit_from_letter_by_index(char letter,
-                                         int index_from_most_significant_bit) {
+static int _get_big_endian_bit_from_letter_by_index(char letter, int index_from_most_significant_bit) {
   int current_bit = (letter >> index_from_most_significant_bit) & 1;
   return current_bit;
+}
+
+void _seconds_to_timespec(double seconds, struct timespec *ts) {
+    ts->tv_sec = (time_t)floor(seconds);
+    ts->tv_nsec = (long)((seconds - ts->tv_sec) * 1e9);
+}
+
+int _timespec_less_than(const struct timespec *ts1, const struct timespec *ts2) {
+    return (ts1->tv_sec < ts2->tv_sec) || 
+           (ts1->tv_sec == ts2->tv_sec && ts1->tv_nsec < ts2->tv_nsec);
+}
+
+struct timespec _diff_timespec(struct timespec start, struct timespec end) {
+    struct timespec result;
+
+    // Calculate the difference in seconds and nanoseconds
+    result.tv_sec = end.tv_sec - start.tv_sec;
+    result.tv_nsec = end.tv_nsec - start.tv_nsec;
+
+    // Handle cases where nanoseconds are negative (borrow 1 second)
+    if (result.tv_nsec < 0) {
+        result.tv_sec -= 1;
+        result.tv_nsec += 1000000000; // Add 1 billion nanoseconds
+    }
+
+    return result;
 }

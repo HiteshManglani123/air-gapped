@@ -8,7 +8,7 @@
 int main(void) {
   // A = 01000001
 
-  int interval = 1 * CLOCKS_PER_SEC;
+  double interval = 1;  // sec
 
   struct Transmitter *transmitter = transmitter_create(interval);
 

@@ -9,6 +9,12 @@ add_executable(transmitter.x86_64
   src/transmitter.c
 )
 
+target_link_libraries(
+    transmitter.x86_64
+    m
+)
+
+
 # Include directories
 target_include_directories(transmitter.x86_64 PRIVATE include)
 
