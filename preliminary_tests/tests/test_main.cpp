@@ -23,58 +23,94 @@ public:
   struct Transmitter *transmitter;
 };
 
-TEST_F(TransmitterFixture, high_bit_transmission_time_within_expected_error_margin) {
+TEST_F(TransmitterFixture, high_bit_transmission_time_is_within_expected_error_margin) {
   double error_margin = 0.1;
   
-  struct timespec ts_start;
-  struct timespec ts_end;
+  // Get the expected time interval for transmission
+  struct timespec interval = transmitter_get_interval(transmitter);
+  
+  struct timespec ts_start, ts_end;
   clock_gettime(CLOCK_REALTIME, &ts_start);
+  
+  // Simulate transmitting a HIGH bit
   transmitter_send_bit(transmitter, HIGH);
+  
   clock_gettime(CLOCK_REALTIME, &ts_end);
-
+  
+  // Calculate elapsed time in seconds and nanoseconds
   long seconds = ts_end.tv_sec - ts_start.tv_sec;
   long nanoseconds = ts_end.tv_nsec - ts_start.tv_nsec;
 
+  // Handle the case where nanoseconds might be negative
   if (nanoseconds < 0) {
       seconds--;
-      nanoseconds += 1000000000; // 1 billion nanoseconds in a second
+      nanoseconds += 1000000000; // Adjust nanoseconds if negative
   }
 
-  printf("Set interval        : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
-  printf("Lower limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1-error_margin)));
-  printf("Transmission time   : %ld.%ld sec\n", seconds, nanoseconds);
-  printf("Upper limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1+error_margin)));
+  // Calculate lower and upper bounds based on the expected interval and error margin
+  long lower_limit_sec = seconds;
+  long lower_limit_nsec = (long)(interval.tv_nsec * (1 - error_margin));
+  long upper_limit_sec = seconds;
+  long upper_limit_nsec = (long)(interval.tv_nsec * (1 + error_margin));
+
+  // Print debug information (optional)
+  // You can keep this, but it's usually better to have logs or assertions
+  // in a proper debug or logging framework rather than printing directly
+  printf("Expected interval     : %ld.%ld sec\n", interval.tv_sec, interval.tv_nsec);
+  printf("Lower limit           : %ld.%ld sec\n", lower_limit_sec, lower_limit_nsec);
+  printf("Transmission time     : %ld.%ld sec\n", seconds, nanoseconds);
+  printf("Upper limit           : %ld.%ld sec\n", upper_limit_sec, upper_limit_nsec);
+
+  // Assert that the transmission time is within the expected bounds
   EXPECT_TRUE(
-    (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*(1+error_margin))) &&
-    (transmitter_get_interval(transmitter).tv_sec >= seconds) && (nanoseconds  > (long)(transmitter_get_interval(transmitter).tv_nsec*(1-error_margin)))
-    );
+    (seconds > lower_limit_sec || (seconds == lower_limit_sec && nanoseconds >= lower_limit_nsec)) &&
+    (seconds < upper_limit_sec || (seconds == upper_limit_sec && nanoseconds <= upper_limit_nsec))
+  ) << "Time taken to transmit the high bit is out of the boundaries of the error margin";
 }
 
-TEST_F(TransmitterFixture, low_bit_transmission_time_within_expected_error_margin) {
+TEST_F(TransmitterFixture, low_bit_transmission_time_is_within_expected_error_margin) {
   double error_margin = 0.1;
-  
-  struct timespec ts_start;
-  struct timespec ts_end;
+
+  // Get the expected time interval for transmission
+  struct timespec interval = transmitter_get_interval(transmitter);
+
+  struct timespec ts_start, ts_end;
   clock_gettime(CLOCK_REALTIME, &ts_start);
+
+  // Simulate transmitting a LOW bit
   transmitter_send_bit(transmitter, LOW);
+
   clock_gettime(CLOCK_REALTIME, &ts_end);
 
+  // Calculate elapsed time in seconds and nanoseconds
   long seconds = ts_end.tv_sec - ts_start.tv_sec;
   long nanoseconds = ts_end.tv_nsec - ts_start.tv_nsec;
 
+  // Handle the case where nanoseconds might be negative
   if (nanoseconds < 0) {
       seconds--;
-      nanoseconds += 1000000000; // 1 billion nanoseconds in a second
+      nanoseconds += 1000000000; // Adjust nanoseconds if negative
   }
 
-  printf("Set interval        : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
-  printf("Lower limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1-error_margin)));
-  printf("Transmission time   : %ld.%ld sec\n", seconds, nanoseconds);
-  printf("Upper limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1+error_margin)));
+  // Calculate lower and upper bounds based on the expected interval and error margin
+  long lower_limit_sec = seconds;
+  long lower_limit_nsec = (long)(interval.tv_nsec * (1 - error_margin));
+  long upper_limit_sec = seconds;
+  long upper_limit_nsec = (long)(interval.tv_nsec * (1 + error_margin));
+
+  // Print debug information (optional)
+  // You can keep this for debugging purposes, but ideally, avoid using printf
+  // in unit tests or replace it with appropriate logging mechanisms.
+  printf("Expected interval     : %ld.%ld sec\n", interval.tv_sec, interval.tv_nsec);
+  printf("Lower limit           : %ld.%ld sec\n", lower_limit_sec, lower_limit_nsec);
+  printf("Transmission time     : %ld.%ld sec\n", seconds, nanoseconds);
+  printf("Upper limit           : %ld.%ld sec\n", upper_limit_sec, upper_limit_nsec);
+
+  // Assert that the transmission time is within the expected bounds
   EXPECT_TRUE(
-    (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*(1+error_margin))) &&
-    (transmitter_get_interval(transmitter).tv_sec >= seconds) && (nanoseconds  > (long)(transmitter_get_interval(transmitter).tv_nsec*(1-error_margin)))
-    );
+    (seconds > lower_limit_sec || (seconds == lower_limit_sec && nanoseconds >= lower_limit_nsec)) &&
+    (seconds < upper_limit_sec || (seconds == upper_limit_sec && nanoseconds <= upper_limit_nsec))
+  );
 }
 
 int main(int argc, char **argv) {
