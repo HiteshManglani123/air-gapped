@@ -1,3 +1,6 @@
 [submodule "cs_research"]
 	path = cs_research
 	url = https://github.com/Krasnomakov/cs_research.git
+[submodule "preliminary_tests/test/gtest"]
+	path = preliminary_tests/test/gtest
+	url = https://github.com/google/googletest.git

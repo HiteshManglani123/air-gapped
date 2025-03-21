@@ -1,5 +1,5 @@
-#include "../include/transmitter.h"
 #include <limits.h>
+#include <transmitter.h>
 
 static int _get_number_of_virtual_cores(int number_of_physical_cores);
 static void _calculate_primes(int interval_in_ms);

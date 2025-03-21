@@ -3,7 +3,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../include/transmitter.h"
+#include <transmitter.h>
 
 int main(void) {
   // A = 01000001
