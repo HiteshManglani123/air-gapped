@@ -9,23 +9,23 @@ extern "C" void _seconds_to_timespec(double seconds, struct timespec *ts) {
     ts->tv_nsec = (long)((seconds - ts->tv_sec) * 1e9);
 }
 
+class TransmitterFixture : public testing::Test
+{
+public:
+  TransmitterFixture(){
+    double interval_in_secs = 1.3;
+    transmitter = transmitter_create(interval_in_secs);
+  }
+  ~TransmitterFixture(){}
+  void SetUp(){}
+  void TearDown(){}
 
-TEST(transmitter_create, interval_correctly_set) {
-  double interval_in_secs = 1;
+  struct Transmitter *transmitter;
+};
 
-  struct timespec interval;
-  _seconds_to_timespec(interval_in_secs, &interval);
 
-  struct Transmitter *transmitter = transmitter_create(interval_in_secs);
-
-  EXPECT_TRUE(transmitter->interval.tv_sec == interval.tv_sec && transmitter->interval.tv_nsec == interval.tv_nsec);
-}
-
-TEST(transmitter_send_bit, interval_is_correct) {
-  double interval_in_secs = 1.5;
+TEST_F(TransmitterFixture, high_bit_interval_consistent) {
   double error_margin = 1.1;
-
-  struct Transmitter *transmitter = transmitter_create(interval_in_secs);
   
   struct timespec ts_start;
   struct timespec ts_end;

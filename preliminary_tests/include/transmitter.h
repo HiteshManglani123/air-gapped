@@ -14,8 +14,6 @@
 #define HIGH 1
 #define LOW 0
 
-#define NANOSECOND_MULTIPLIER
-
 struct Transmitter {
   size_t number_of_virtual_cores;
   struct timespec interval;
