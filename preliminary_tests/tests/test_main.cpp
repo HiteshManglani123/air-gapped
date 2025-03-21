@@ -23,9 +23,8 @@ public:
   struct Transmitter *transmitter;
 };
 
-
-TEST_F(TransmitterFixture, high_bit_interval_consistent) {
-  double error_margin = 1.1;
+TEST_F(TransmitterFixture, high_bit_transmission_time_within_expected_error_margin) {
+  double error_margin = 0.1;
   
   struct timespec ts_start;
   struct timespec ts_end;
@@ -41,10 +40,41 @@ TEST_F(TransmitterFixture, high_bit_interval_consistent) {
       nanoseconds += 1000000000; // 1 billion nanoseconds in a second
   }
 
-  printf("interval  : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
-  printf("Time taken: %ld.%ld sec\n", seconds, nanoseconds);
-  printf("Upper limit: %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * error_margin));
-  EXPECT_TRUE( (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*error_margin)) );
+  printf("Set interval        : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
+  printf("Lower limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1-error_margin)));
+  printf("Transmission time   : %ld.%ld sec\n", seconds, nanoseconds);
+  printf("Upper limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1+error_margin)));
+  EXPECT_TRUE(
+    (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*(1+error_margin))) &&
+    (transmitter_get_interval(transmitter).tv_sec >= seconds) && (nanoseconds  > (long)(transmitter_get_interval(transmitter).tv_nsec*(1-error_margin)))
+    );
+}
+
+TEST_F(TransmitterFixture, low_bit_transmission_time_within_expected_error_margin) {
+  double error_margin = 0.1;
+  
+  struct timespec ts_start;
+  struct timespec ts_end;
+  clock_gettime(CLOCK_REALTIME, &ts_start);
+  transmitter_send_bit(transmitter, LOW);
+  clock_gettime(CLOCK_REALTIME, &ts_end);
+
+  long seconds = ts_end.tv_sec - ts_start.tv_sec;
+  long nanoseconds = ts_end.tv_nsec - ts_start.tv_nsec;
+
+  if (nanoseconds < 0) {
+      seconds--;
+      nanoseconds += 1000000000; // 1 billion nanoseconds in a second
+  }
+
+  printf("Set interval        : %ld.%ld sec\n", transmitter_get_interval(transmitter).tv_sec, transmitter_get_interval(transmitter).tv_nsec);
+  printf("Lower limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1-error_margin)));
+  printf("Transmission time   : %ld.%ld sec\n", seconds, nanoseconds);
+  printf("Upper limit         : %ld.%ld sec\n", seconds, (long)(transmitter_get_interval(transmitter).tv_nsec * (1+error_margin)));
+  EXPECT_TRUE(
+    (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*(1+error_margin))) &&
+    (transmitter_get_interval(transmitter).tv_sec >= seconds) && (nanoseconds  > (long)(transmitter_get_interval(transmitter).tv_nsec*(1-error_margin)))
+    );
 }
 
 int main(int argc, char **argv) {

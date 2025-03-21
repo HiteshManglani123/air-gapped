@@ -1,6 +1,5 @@
 #include <pthread.h>
 #include <sys/wait.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <transmitter.h>
