@@ -15,14 +15,14 @@ struct Transmitter;
 
 struct Transmitter *transmitter_create(double interval);
 
-void transmitter_destroy(struct Transmitter *transmitter);
+void transmitter_destroy(struct Transmitter *self);
 
-struct timespec transmitter_get_interval(struct Transmitter *transmitter);
+struct timespec transmitter_get_interval(struct Transmitter *self);
 
-void transmitter_send_calibration(struct Transmitter *transmitter, int length, int calibration_sequence[]);
+void transmitter_send_calibration(struct Transmitter *self, int length, int calibration_sequence[]);
 
-void transmitter_send_letter(struct Transmitter *transmitter, char letter);
+void transmitter_send_letter(struct Transmitter *self, char letter);
 
-clock_t transmitter_send_bit(struct Transmitter *transmitter, int current_bit);
+clock_t transmitter_send_bit(struct Transmitter *self, int current_bit);
 
 #endif // TRANSMITTER_H

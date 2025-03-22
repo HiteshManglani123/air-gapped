@@ -7,9 +7,7 @@
 int main(void) {
   // A = 01000001
 
-  double interval = 1;  // sec
-
-  struct Transmitter *transmitter = transmitter_create(interval);
+  struct Transmitter *transmitter = transmitter_create(0.3);
 
   transmitter_send_calibration(transmitter, 5, NULL);
 

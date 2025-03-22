@@ -38,28 +38,28 @@ struct Transmitter *transmitter_create(double interval) {
   return transmitter;
 }
 
-void transmitter_destroy(struct Transmitter *transmitter) {
-  free(transmitter->pids);
-  free(transmitter);
+void transmitter_destroy(struct Transmitter *self) {
+  free(self->pids);
+  free(self);
 }
 
-struct timespec transmitter_get_interval(struct Transmitter *transmitter)
+struct timespec transmitter_get_interval(struct Transmitter *self)
 {
-  return transmitter->interval;
+  return self->interval;
 }
 
-void transmitter_send_letter(struct Transmitter *transmitter, char letter) {
+void transmitter_send_letter(struct Transmitter *self, char letter) {
   printf("Transmitting: %c\n", letter);
   for (int index = CHAR_BIT - 1; index >= 0; index--) {
     int current_bit = _get_big_endian_bit_from_letter_by_index(letter, index);
     printf("%d", current_bit);
     fflush(stdout);
-    transmitter_send_bit(transmitter, current_bit);
+    transmitter_send_bit(self, current_bit);
   }
   printf("\n");
 }
 
-void transmitter_send_calibration(struct Transmitter *transmitter, int length, int calibration_sequence[]) {
+void transmitter_send_calibration(struct Transmitter *self, int length, int calibration_sequence[]) {
   int current_bit;
   int calibration_index = 0;
 
@@ -79,20 +79,20 @@ void transmitter_send_calibration(struct Transmitter *transmitter, int length, i
       calibration_sequence[calibration_index] = current_bit;
     }
     calibration_index++;
-    transmitter_send_bit(transmitter, current_bit);
+    transmitter_send_bit(self, current_bit);
   } while (length--);
   printf("\n");
 }
 
-clock_t transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
+clock_t transmitter_send_bit(struct Transmitter *self, int current_bit) {
   clock_t runtime;
   if (current_bit == 0) {
     clock_t start = clock();
-    _send_low(transmitter);
+    _send_low(self);
     runtime = (double)(clock() - start);
   } else if (current_bit == 1) {
     clock_t start = clock();
-    _send_high(transmitter);
+    _send_high(self);
     runtime = (double)(clock() - start);
   } else {
     abort();
@@ -101,29 +101,29 @@ clock_t transmitter_send_bit(struct Transmitter *transmitter, int current_bit) {
   return runtime;
 }
 
-static int _send_high(struct Transmitter *transmitter) {
+static int _send_high(struct Transmitter *self) {
   unsigned long i;
 
-  for (i = 0; i < transmitter->number_of_pids; ++i) {
-    if (!(transmitter->pids[i] = fork())) {
-      _calculate_primes(transmitter->interval);
+  for (i = 0; i < self->number_of_pids; ++i) {
+    if (!(self->pids[i] = fork())) {
+      _calculate_primes(self->interval);
       exit(0);
     }
-    if (transmitter->pids[i] < 0) {
+    if (self->pids[i] < 0) {
       perror("Fork");
       exit(1);
     }
   }
 
-  for (i = 0; i < transmitter->number_of_pids; ++i) {
-    waitpid(transmitter->pids[i], NULL, 0);
+  for (i = 0; i < self->number_of_pids; ++i) {
+    waitpid(self->pids[i], NULL, 0);
   }
 
   return 0;
 }
 
-static void _send_low(struct Transmitter *transmitter) {
-  nanosleep(&transmitter->interval, NULL);
+static void _send_low(struct Transmitter *self) {
+  nanosleep(&self->interval, NULL);
 }
 
 static void _calculate_primes(struct timespec interval) {
