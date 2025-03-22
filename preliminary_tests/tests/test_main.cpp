@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <math.h>
 
 extern "C" {
   #include <transmitter.h>
@@ -75,6 +76,23 @@ TEST_F(TransmitterFixture, low_bit_transmission_time_within_expected_error_margi
     (transmitter_get_interval(transmitter).tv_sec <= seconds) && (nanoseconds  < (long)(transmitter_get_interval(transmitter).tv_nsec*(1+error_margin))) &&
     (transmitter_get_interval(transmitter).tv_sec >= seconds) && (nanoseconds  > (long)(transmitter_get_interval(transmitter).tv_nsec*(1-error_margin)))
     );
+}
+
+TEST_F(TransmitterFixture, calibration_starts_with_high)
+{
+  int length_even = 4;
+  int length_odd = 5;
+  int calibration_sequence_even[MAX_CALIBRATION_LENGTH];
+  int calibration_sequence_odd[MAX_CALIBRATION_LENGTH];
+  printf("Testing even length\n");
+  transmitter_send_calibration(transmitter, length_even, calibration_sequence_even);
+  printf("Testing odd length\n");
+  transmitter_send_calibration(transmitter, length_odd, calibration_sequence_odd);
+
+  printf("Even number: %d\n", calibration_sequence_even[0]);
+  printf("Odd number : %d\n", calibration_sequence_odd[0]);
+
+  EXPECT_TRUE(calibration_sequence_even[0] == 1 && calibration_sequence_odd[0] == 1);
 }
 
 int main(int argc, char **argv) {
