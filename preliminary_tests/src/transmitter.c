@@ -1,6 +1,11 @@
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+
+// custom
 #include <transmitter.h>
+#include <macros.h>
 
 static int _get_number_of_virtual_cores(int number_of_physical_cores);
 static void _calculate_primes(struct timespec interval);
@@ -54,12 +59,28 @@ void transmitter_send_letter(struct Transmitter *transmitter, char letter) {
   printf("\n");
 }
 
-void transmitter_send_calibration(struct Transmitter *transmitter, int length) {
-  while (length--) {
-    printf("%d", length % 2);
+void transmitter_send_calibration(struct Transmitter *transmitter, int length, int calibration_sequence[]) {
+  int current_bit;
+  int calibration_index = 0;
+
+  int length_is_an_odd = length % 2;
+
+  // ensure the calibration starts with high
+  do {
+    if (length_is_an_odd) {
+      current_bit = (length % 2);
+    }
+    else {
+      current_bit = (length % 2) ^ 1;
+    }
+    printf("%d", current_bit);
     fflush(stdout);
-    transmitter_send_bit(transmitter, (length % 2));
-  }
+    if (calibration_sequence != NULL) {
+      calibration_sequence[calibration_index] = current_bit;
+    }
+    calibration_index++;
+    transmitter_send_bit(transmitter, current_bit);
+  } while (length--);
   printf("\n");
 }
 
