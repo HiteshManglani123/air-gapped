@@ -5,8 +5,6 @@
 #include <transmitter.h>
 
 int main(void) {
-  // A = 01000001
-
   struct Transmitter *transmitter = transmitter_create(0.3);
 
   transmitter_send_calibration(transmitter, 5, NULL);
