@@ -80,6 +80,8 @@ void transmitter_send_calibration(struct Transmitter *self, int length, int cali
     }
     calibration_index++;
     transmitter_send_bit(self, current_bit);
+    if (length == 1)
+      return;
   } while (length--);
   printf("\n");
 }
