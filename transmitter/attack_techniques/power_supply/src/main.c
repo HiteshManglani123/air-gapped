@@ -9,7 +9,7 @@
 #define MESSAGE_SIZE 128
 
 int main(int argc, char** argv) {
-  struct Transmitter *transmitter = transmitter_create(0.3);
+  struct Transmitter *transmitter = transmitter_create(0.3, FREQUENCY(10.5, MHZ));
 
   char message[MESSAGE_SIZE];
 

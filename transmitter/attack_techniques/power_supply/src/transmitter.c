@@ -2,16 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <inttypes.h>
 
 // custom
 #include <transmitter.h>
 #include <macros.h>
 
 static int _get_number_of_virtual_cores(int number_of_physical_cores);
-static void _calculate_primes(struct timespec interval);
+static void _calculate_primes(struct timespec interval, uint64_t frequency);
 static int _get_big_endian_bit_from_letter_by_index(char letter, int index_from_most_significant_bit);
-static int _send_high(struct Transmitter *transmitter);
-static void _send_low(struct Transmitter *transmitter);
+static int _send_high(struct Transmitter *self);
+static void _send_low(struct Transmitter *self);
 static void _seconds_to_timespec(double seconds, struct timespec *ts);
 static int _timespec_less_than(const struct timespec *ts1, const struct timespec *ts2);
 static struct timespec _diff_timespec(struct timespec start, struct timespec end);
@@ -20,11 +21,11 @@ struct Transmitter {
   size_t number_of_virtual_cores;
   struct timespec interval;
   size_t number_of_pids;
+  uint64_t frequency;
   pid_t *pids;
 };
 
-struct Transmitter *transmitter_create(double interval) {
-
+struct Transmitter *transmitter_create(double interval, uint64_t frequency) {
   struct Transmitter *transmitter = malloc(sizeof(struct Transmitter));
 
   transmitter->number_of_virtual_cores = _get_number_of_virtual_cores(sysconf(_SC_NPROCESSORS_ONLN));
@@ -32,6 +33,8 @@ struct Transmitter *transmitter_create(double interval) {
   transmitter->number_of_pids = transmitter->number_of_virtual_cores;
 
   transmitter->pids = malloc(sizeof(pid_t) * transmitter->number_of_pids);
+
+  transmitter->frequency = frequency;
 
   _seconds_to_timespec(interval, &transmitter->interval);
 
@@ -108,7 +111,7 @@ static int _send_high(struct Transmitter *self) {
 
   for (i = 0; i < self->number_of_pids; ++i) {
     if (!(self->pids[i] = fork())) {
-      _calculate_primes(self->interval);
+      _calculate_primes(self->interval, self->frequency);
       exit(0);
     }
     if (self->pids[i] < 0) {
@@ -128,7 +131,7 @@ static void _send_low(struct Transmitter *self) {
   nanosleep(&self->interval, NULL);
 }
 
-static void _calculate_primes(struct timespec interval) {
+static void _calculate_primes(struct timespec interval, uint64_t frequency) {
   unsigned long i, num, primes = 0;
   clock_t start;
   clock_t end;
@@ -139,16 +142,17 @@ static void _calculate_primes(struct timespec interval) {
 
   clock_gettime(0, &TimeSpecStart);
   for (num = 1; num <= MAX_PRIME; ++num) {
-    for (i = 2; (i <= num) && (num % i != 0); ++i)
-      ;
-    if (i == num) {
-      ++primes;
-    }
-    clock_gettime(0, &TimeSpecEnd);
-    TimeSpecTotalTimeTaken = _diff_timespec(TimeSpecStart, TimeSpecEnd);
+    for (i = 2; (i <= num) && (num % i != 0) && (sleep(1/frequency)); ++i)
+    {
+      if (i == num) {
+        ++primes;
+      }
+      clock_gettime(0, &TimeSpecEnd);
+      TimeSpecTotalTimeTaken = _diff_timespec(TimeSpecStart, TimeSpecEnd);
 
-    if ( _timespec_less_than(&interval, &TimeSpecTotalTimeTaken)) {
-      return;
+      if ( _timespec_less_than(&interval, &TimeSpecTotalTimeTaken)) {
+        return;
+      }
     }
   }
 }
