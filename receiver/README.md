@@ -34,6 +34,7 @@ make
 - FFT Size: 262144 samples
 - Frequency Range: 61.5MHz - 61.55MHz
 - Bits per second: 2 (0.5MHz transmitter rate)
+- Modulation: OOK (On-Off Keying)
 
 ### Bit Detection
 - Uses signal magnitude changes to detect bits
