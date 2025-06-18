@@ -1,65 +1,71 @@
 # Covert Channel Receiver
 
 ## Overview
-A Raspberry Pi-based RF receiver that decodes signals to (display burger ingredients). Uses HackRF for signal reception and FFT processing for decoding.
+A Raspberry Pi-based RF receiver that decodes covert signals to display burger ingredients in real-time. This system demonstrates wireless covert communication by receiving and decoding RF signals transmitted at 63MHz, then displaying the decoded ingredients on a visual interface.
+
+## How It Works
+The receiver captures electromagnetic signals using a HackRF software-defined radio, processes them through FFT analysis to detect signal strength changes (OOK Modulation), and decodes the binary data into burger ingredients using packets of (4) bits. The system uses timing synchronization and calibration to maintain reliable communication with the transmitter.
+
+### Key Features
+- **Real-time signal processing** at 8MHz sample rate
+- **Automatic calibration** with sliding window pattern matching
+- **Bit decoding** using magnitude threshold analysis
+- **Visual feedback** through SDL2 graphics interface
+- **Timing synchronization** for reliable communication with the transmission
 
 ## Requirements
-- Hardware: Raspberry Pi 4, HackRF One
-- Software: FFTW3, HackRF, SDL2
+- **Hardware**: Raspberry Pi 4, HackRF One
+- **Software**: FFTW3, HackRF, SDL2
 
-## Build
+## Build & Run
 ```bash
 # Install dependencies
 sudo apt-get install libfftw3-dev libhackrf-dev libsdl2-dev libsdl2-image-dev
 
 # Compile
 make
-```
 
-## Run
-```bash
+# Run
 ./receiver
 ```
 
-## How it Works
-- Receives RF signals at 63MHz
-- Uses FFT to analyze signal strength
-- Decodes bits based on signal changes
-- Displays burger ingredients as they're received
+## Testing
+Run the test suite to validate core algorithms:
+```bash
+cd tests
+make test
+```
 
-## Technical Details
+**Tested Components:**
+- Timing synchronization (pairing logic)
+- Calibration algorithm (pattern matching with error recovery)
+- Bit decoding (threshold-based bit detection)
+- Packet reconstruction (bit-to-byte conversion)
+
+## Technical Specifications
+
 ### Signal Processing
-- Sample Rate: 8MHz
-- Center Frequency: 63MHz
-- FFT Size: 262144 samples
-- Frequency Range: 61.5MHz - 61.55MHz
-- Bits per second: 2 (0.5MHz transmitter rate)
-- Modulation: OOK (On-Off Keying)
+- **Sample Rate**: 8MHz
+- **Center Frequency**: 63MHz
+- **FFT Size**: 262144 samples
+- **Frequency Range**: 61.5MHz - 61.55MHz
+- **Data Rate**: 2 bits per second
+- **Modulation**: OOK (On-Off Keying)
 
-### Bit Detection
-- Uses signal magnitude changes to detect bits
-- Thresholds: +15% for 1, -15% for 0
-- Averages 8 FFT readings per bit
-- Concatenates 2 FFTs for noise reduction
+### Bit Detection Algorithm
+- Detects bits based on signal magnitude changes
+- **Thresholds**: +15% increase for bit '1', -15% decrease for bit '0'
+- Averages 8 FFT readings per bit for noise reduction
+- Uses concatenated FFTs for improved signal quality
 
-### Timing & Synchronization
-- Transmitter sends at exact second boundaries
-- Receiver starts 100ms after each second
-- Accepts 10ms jitter window at start of each second
-- Takes 8 FFT readings per bit (0.5MHz/8 = 62.5kHz pause between reads)
-- Uses precise timing to maintain bit synchronization
+### Synchronization System
+- **Transmitter timing**: Sends at exact second boundaries
+- **Receiver timing**: Starts 100ms after each second
+- **Jitter tolerance**: 10ms window at start of each second
+- **Bit synchronization**: 8 FFT readings per bit (62.5kHz intervals)
 
-### Calibration
-- Pattern: 1,0,1,0,1,0,1,0
-- Synchronizes with transmitter
-- Starts decoding after successful calibration
-
-## Troubleshooting
-- If HackRF isn't detected: `hackrf_info` to verify connection
-- If compilation fails: Check all dependencies are installed
-- If no signal: Verify transmitter is on and at correct frequency
-
-## Notes
-- Calibration pattern: 1,0,1,0,1,0,1,0
-- Sample rate: 8MHz
-- Center frequency: 63MHz 
+### Calibration Protocol
+- **Pattern**: 1,0,1,0,1,0,1,0 (8-bit sequence)
+- **Method**: Sliding window pattern matching
+- **Recovery**: Automatic reset on mismatch, continues from current bit
+- **Completion**: Starts data decoding after successful calibration

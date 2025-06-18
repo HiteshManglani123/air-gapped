@@ -32,12 +32,12 @@ Configuration
 */
 #define SAMPLE_RATE 8000000
 #define CENTER_FREQUENCY 63000000
-#define FFT_SIZE 262144
+#define FFT_SIZE 131072
 #define NUM_OF_CONCATENATED_FFTS 2 // Number of FFTs averaged per symbol to reduce noise
 #define TOTAL_FFT_SIZE (FFT_SIZE * NUM_OF_CONCATENATED_FFTS)
 #define NUM_FFT_PER_SYMBOL 8
-#define START_FREQ_RANGE 61500000.0 // Hz — must stay a double (don’t change to int)
-#define END_FREQ_RANGE 61550000.0   // Hz — must stay a double (don’t change to int)
+#define START_FREQ_RANGE 61500000.0 // Hz — must stay a double (don't change to int)
+#define END_FREQ_RANGE 61550000.0   // Hz — must stay a double (don't change to int)
 #define PACKET_STREAM_LENGTH 4 // Must match the transmitter packet size
 
 // Thresholds to decide when a bit changes based on how much the signal goes up or down
@@ -84,9 +84,9 @@ double end_freq_span = CENTER_FREQUENCY + BIN_OFFSET(FFT_SIZE) * BIN_SIZE; // in
 
 // --- Sample Buffers ---
 // TODO: Consider dynamic allocation if FFT_SIZE needs to be variable
-static unsigned char sample_buffer[FFT_SIZE * NUM_OF_CONCATENATED_FFTS];
+static unsigned char sample_buffer[FFT_SIZE * NUM_OF_CONCATENATED_FFTS * 2]; // * each value has 2 bytes
 static unsigned char *first_sample = sample_buffer;
-static unsigned char *second_sample = sample_buffer + (FFT_SIZE);
+static unsigned char *second_sample = sample_buffer + (FFT_SIZE * 2);
 
 uint8_t first_sample_received = 0;
 
@@ -120,24 +120,42 @@ uint8_t message_read_index = 0;
 
     - Each sample = 2 bytes (I and Q)
     - We want two chunks of FFT_SIZE samples to process
-    - Since HackRF can’t give us both at once, we collect them one by one
+    - Since HackRF can't give us both at once, we collect them one by one
 
     Make dynamic if needed.
 */
 int rx_callback(hackrf_transfer *transfer)
 {
-    if (transfer->valid_length >= FFT_SIZE && !samples_already_collected) {
+    if (transfer->valid_length >= (FFT_SIZE * 2) && !samples_already_collected) {
         if (first_sample_received) {
-            memcpy(second_sample, transfer->buffer, FFT_SIZE);
+            memcpy(second_sample, transfer->buffer, FFT_SIZE * 2);
             first_sample_received = 0;
             samples_already_collected = 1;
         } else {
-            memcpy(first_sample, transfer->buffer, FFT_SIZE);
+            memcpy(first_sample, transfer->buffer, FFT_SIZE * 2);
             first_sample_received = 1;
         }
     }
 
     return 0;
+}
+
+// Bit decoding logic - determines if bit should flip based on magnitude change
+uint8_t decode_bit(uint8_t current_bit, double diff) {
+    return current_bit ? (diff <= DECREASE_THRESHOLD ? 0 : 1) :
+                        (diff >= INCREASE_THRESHOLD ? 1 : 0);
+}
+
+// Convert bit stream to byte (big-endian)
+uint8_t reconstruct_packet(uint8_t bit_stream[], uint8_t length) {
+    uint8_t number = 0;
+    uint8_t shift_amount = length - 1;
+
+    for (int i = 0; i < length; i++, shift_amount--) {
+        number |= (bit_stream[i] << shift_amount);
+    }
+
+    return number;
 }
 
 // Runs FFT and returns average signal strength between two frequency slots
@@ -151,7 +169,6 @@ double process_fft(uint32_t start_index, uint32_t end_index)
 
     // Execute FFT using plan
     fftw_execute(plan);
-
     // Caluclate average magnitude
     double sum = 0;
 
@@ -275,7 +292,11 @@ void handle_calibration(uint8_t current_bit)
 
         // wrong bit received, reset calibration stream. Keep current bit as latest
         calibration_stream[0] = current_bit;
-        calibration_index = 1;
+        calibration_index = 1;  // Start comparing next bit against CALIBRATION_STREAM[1]
+    } else {
+        // Correct bit, move to next position
+        calibration_index++;
+
     }
 
     // If this was the last bit, set calibrated to 1
@@ -291,6 +312,28 @@ void handle_calibration(uint8_t current_bit)
         }
 
         calibrated  = 1;
+    }
+}
+
+/*
+    Sync receiver to start slightly after the next whole second.
+    Transmitter sends at exact second -> Receiver wakes at second + delay (e.g. 100ms).
+*/
+
+void static setup_pairing(struct timespec *pairing_ts) {
+    double delay_ms = 100;
+    double jitter_ns = 10e6; // Acceptable jitter window: first 10 ms of a second
+
+    while (1) {
+        clock_gettime(CLOCK_REALTIME, pairing_ts); // Get current time
+
+        // If within the first 10ms of a new second, schedule wakeup
+        if (pairing_ts->tv_nsec < jitter_ns) {
+            pairing_ts->tv_sec += 1; // Move to next second
+            pairing_ts->tv_nsec = delay_ms * 1000000; // Add desired delay in ns
+            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, pairing_ts, NULL);
+            break;
+        }
     }
 }
 
@@ -383,33 +426,11 @@ int main(void)
 
     double sample_mag_sum = 0;
 
-    // Track timing
-    struct timespec ts;
-    double mag, diff;
-
     // === Pairing ===
-    /*
-        Sync receiver to start slightly after the next whole second.
-        Transmitter sends at exact second -> Receiver wakes at second + delay (e.g. 100ms).
-    */
     struct timespec pairing_ts;
-    double delay_ms = 100;
-    double jitter_ns = 10e6; // Acceptable jitter window: first 10 ms of a second
-
-    while (1) {
-        clock_gettime(CLOCK_REALTIME, &pairing_ts); // Get current time
-
-        // If within the first 10ms of a new second, schedule wakeup
-        if (pairing_ts.tv_nsec < jitter_ns) {
-            pairing_ts.tv_sec += 1; // Move to next second
-            pairing_ts.tv_nsec = delay_ms * 1000000; // Add desired delay in ns
-            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pairing_ts, NULL);
-            break;
-        }
-    }
+    setup_pairing(&pairing_ts);
 
     // === Setup Receiver timing ===
-
     struct timespec target;
 
     // Synch with pairing
@@ -418,7 +439,12 @@ int main(void)
 
     const long pause_ns = (long)(PAUSE_US * 1000);
 
+
      // === Start Receiver Decoding ===
+
+     // Track timing and info
+     struct timespec ts;
+     double mag, diff;
 
     while (1) {
         // Check if HackRF samples are ready
@@ -437,12 +463,13 @@ int main(void)
         mag = process_fft(start_index, end_index);
 
         // === Receiver Sampling ===
-        int done_sampling = sample_start_index == sample_end_index;
+        int done_sampling = (sample_start_index == sample_end_index);
 
         if (!done_sampling) {
             sample_mags[sample_start_index++] = mag;
             sample_mag_sum += mag;
         } else {
+
             // Done Sampling
             mag = (sample_mag_sum + mag) / NUM_FFT_PER_SYMBOL;
 
@@ -466,8 +493,7 @@ int main(void)
             */
             diff = (mag - previous_mag) / previous_mag * 100;
 
-            current_bit = current_bit ? (diff <= DECREASE_THRESHOLD ? 0 : 1) :
-                            (diff >= INCREASE_THRESHOLD ? 1 : 0);
+            current_bit = decode_bit(current_bit, diff);
 
             printf("[RX] %02ld:%02ld:%02ld.%03ld Mag: %.2f diff: %f BIT=%d\n",
                    (ts.tv_sec / 3600) % 24,
@@ -504,13 +530,7 @@ int main(void)
                     // done saving (stored in big endian, check rules above)
 
                     // find out what the (4/packet stream length) number is
-                    uint8_t number = 0;
-                    uint8_t bit_stream_shift_amount = PACKET_STREAM_LENGTH - 1;
-
-                    // Convert the received bit stream into a single byte (big-endian)
-                    for (int i = 0; i < PACKET_STREAM_LENGTH; i++, bit_stream_shift_amount--) {
-                        number |= (bit_stream[i] << bit_stream_shift_amount);
-                    }
+                    uint8_t number = reconstruct_packet(bit_stream, PACKET_STREAM_LENGTH);
 
                     if (DEBUG_MODE) {
                         printf("[RX] Bit stream received: %d\n", number);
@@ -535,12 +555,14 @@ int main(void)
                     bit_stream_index = 0;
                 }
             }
+
+            // Save and reset state for next set of samples
+            previous_mag = mag;
+            sample_start_index = 0;
+            sample_mag_sum = 0;
         }
 
-        // Save and reset state for next set of samples
-        previous_mag = mag;
-        sample_start_index = 0;
-        sample_mag_sum = 0;
+        // Sample collected
         samples_already_collected = 0;
 
         // increase target time for next sample
