@@ -4,3 +4,6 @@
 [submodule "preliminary_tests/test/gtest"]
 	path = preliminary_tests/test/gtest
 	url = https://github.com/google/googletest.git
+[submodule "software-based-detection"]
+	path = software-based-detection
+	url = https://github.com/Dogru-Isim/airgap-antivirus.git
