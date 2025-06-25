@@ -1,0 +1,44 @@
+name: Update cs_research submodule
+
+on:
+  schedule:
+    # Runs every day at midnight UTC. You can change the schedule if you like.
+    # See https://crontab.guru/ for help.
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+
+    # These permissions are needed to allow the workflow to push changes to the repository.
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          # We need to use a token with write permissions to push the changes
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update cs_research submodule to latest commit
+        run: |
+          # Update the submodule to the latest commit on its default branch
+          git submodule update --remote --merge cs_research
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add cs_research
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "The cs_research submodule is already up to date."
+            exit 0
+          fi
+          git commit -m "Automated: Update cs_research submodule"
+          echo "Pushing updated cs_research submodule..."
+          git push 
