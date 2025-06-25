@@ -26,8 +26,14 @@ jobs:
 
       - name: Update cs_research submodule to latest commit
         run: |
-          # Update the submodule to the latest commit on its default branch
-          git submodule update --remote --merge cs_research
+          # Go into the submodule directory, fetch the latest changes,
+          # and reset it to the tip of the default branch.
+          # This avoids issues with "unrelated histories".
+          cd cs_research
+          git fetch
+          DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+          git reset --hard origin/$DEFAULT_BRANCH
+          cd ..
 
       - name: Commit and push changes
         run: |
